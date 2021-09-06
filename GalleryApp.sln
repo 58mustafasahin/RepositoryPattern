@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppCore", "AppCore\AppCore.csproj", "{475E063B-DB67-4C9C-976C-96FBA73B76EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GalleryApp.Entity", "GalleryApp.Entity\GalleryApp.Entity.csproj", "{4355FC96-09DD-42C6-AAA7-AB7BB8F12C8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GalleryApp.DataAccess", "GalleryApp.DataAccess\GalleryApp.DataAccess.csproj", "{5A7F2677-23D8-4759-BBF3-4132A9E70642}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GalleryApp.Business", "GalleryApp.Business\GalleryApp.Business.csproj", "{E375B618-3B1E-4A78-B1E1-270C256ED395}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GalleryApp.Infrastructure", "GalleryApp.Infrastructure\GalleryApp.Infrastructure.csproj", "{3BECFA94-C954-412E-88B5-81F783F42AFF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GalleryApp.WebApi", "GalleryApp.WebApi\GalleryApp.WebApi.csproj", "{1AF60755-5ADB-4EA0-A9E0-F12AAFE2AE41}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{475E063B-DB67-4C9C-976C-96FBA73B76EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{475E063B-DB67-4C9C-976C-96FBA73B76EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{475E063B-DB67-4C9C-976C-96FBA73B76EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{475E063B-DB67-4C9C-976C-96FBA73B76EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4355FC96-09DD-42C6-AAA7-AB7BB8F12C8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4355FC96-09DD-42C6-AAA7-AB7BB8F12C8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4355FC96-09DD-42C6-AAA7-AB7BB8F12C8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4355FC96-09DD-42C6-AAA7-AB7BB8F12C8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A7F2677-23D8-4759-BBF3-4132A9E70642}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A7F2677-23D8-4759-BBF3-4132A9E70642}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A7F2677-23D8-4759-BBF3-4132A9E70642}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A7F2677-23D8-4759-BBF3-4132A9E70642}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E375B618-3B1E-4A78-B1E1-270C256ED395}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E375B618-3B1E-4A78-B1E1-270C256ED395}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E375B618-3B1E-4A78-B1E1-270C256ED395}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E375B618-3B1E-4A78-B1E1-270C256ED395}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BECFA94-C954-412E-88B5-81F783F42AFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BECFA94-C954-412E-88B5-81F783F42AFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BECFA94-C954-412E-88B5-81F783F42AFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BECFA94-C954-412E-88B5-81F783F42AFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AF60755-5ADB-4EA0-A9E0-F12AAFE2AE41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AF60755-5ADB-4EA0-A9E0-F12AAFE2AE41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AF60755-5ADB-4EA0-A9E0-F12AAFE2AE41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AF60755-5ADB-4EA0-A9E0-F12AAFE2AE41}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6BC86373-F73D-44EE-9C0E-1FD82D2BDB09}
+	EndGlobalSection
+EndGlobal

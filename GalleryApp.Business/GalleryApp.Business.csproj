@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="10.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GalleryApp.DataAccess\GalleryApp.DataAccess.csproj" />
+    <ProjectReference Include="..\GalleryApp.Entity\GalleryApp.Entity.csproj" />
+  </ItemGroup>
+
+</Project>
