@@ -25,9 +25,6 @@ namespace GalleryApp.WebApi
             {
                 options.AddPolicy("CorsPolicy",
                     builder =>
-                    // Servisi belirli bir adresten gelen taleplere ama
-                    //builder.WithOrigins("http://localhost:3000","http://94.73.164.170:")
-                    // Servisi tm taleplere ama
                      builder.AllowAnyOrigin()
                     .AllowAnyMethod()
                     .AllowAnyHeader());
@@ -40,9 +37,9 @@ namespace GalleryApp.WebApi
             });
 
             
-            //context, unitofwork, mapper
+            //Context, Unitofwork, Mapper
             services.AddPersistence();
-            //PeoductService, ..
+            //ProductService, ...
             services.AddService();
             
             services.Configure<MongoOptions>(Configuration.GetSection("MongoOptions"));
@@ -52,8 +49,6 @@ namespace GalleryApp.WebApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseCors("CorsPolicy");
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -61,7 +56,14 @@ namespace GalleryApp.WebApi
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "GalleryApp.WebApi v1"));
             }
 
+            app.UseHttpsRedirection();
+
             app.UseRouting();
+
+            //Cors is between routing - endpoints
+            app.UseCors("CorsPolicy");
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

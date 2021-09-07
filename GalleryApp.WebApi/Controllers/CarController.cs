@@ -1,4 +1,5 @@
 ﻿using GalleryApp.Business.Abstract;
+using GalleryApp.Business.Validation.Car;
 using GalleryApp.Entity.Dtos.Car;
 using GalleryApp.Entity.Entity.ImageEntities;
 using Microsoft.AspNetCore.Http;
@@ -20,9 +21,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetAllCarList")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<GetListCarDto>>> GetAllCarListAsync()
+        public async Task<ActionResult<List<GetListCarDto>>> GetAllCarList()
         {
             try
             {
@@ -35,17 +34,20 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetCarById/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<GetCarDto>> GetCarByIdAsync(int carId)
+        public async Task<ActionResult<GetCarDto>> GetCarById(int carId)
         {
             var list = new List<string>();
+            if (carId <= 0)
+            {
+                list.Add("Invalid carId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var car = await _carService.GetCarByIdAsync(carId);
                 if (car == null)
                 {
-                    list.Add("Araç bulunamadı.");
+                    list.Add("Vehicle is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 else
@@ -60,14 +62,32 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPost("AddCar")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddCarAsync(AddCarDto addCarDto)
+        public async Task<ActionResult<string>> AddCar(AddCarDto addCarDto)
         {
+            var list = new List<string>();
+            var validator = new CarAddValidator();
+            var validationResult = validator.Validate(addCarDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
+
             try
             {
-                await _carService.AddCarAsync(addCarDto);
-                return StatusCode(StatusCodes.Status201Created);
+                var result = await _carService.AddCarAsync(addCarDto);
+                switch (result)
+                {
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                }
             }
             catch (Exception ex)
             {
@@ -76,27 +96,33 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateCar/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateCarAsync(int carId, UpdateCarDto updateCarDto)
+        public async Task<ActionResult<string>> UpdateCar(int carId, UpdateCarDto updateCarDto)
         {
             var list = new List<string>();
+            var validator = new CarUpdateValidator();
+            var validationResult = validator.Validate(updateCarDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
             try
             {
-                int result = await _carService.UpdateCarAsync(carId, updateCarDto);
-                if (result > 0)
+                var result = await _carService.UpdateCarAsync(carId, updateCarDto);
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Araç güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -106,23 +132,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteCar/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<string>> DeleteCar(int carId)
         {
             var list = new List<string>();
             try
             {
-                int result = await _carService.DeleteCar(carId);
-                if (result > 0)
+                var result = await _carService.DeleteCar(carId);
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı.");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else
-                {
-                    list.Add("Araç silinemedi.");  //silme işlemi başarısız
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -135,32 +161,26 @@ namespace GalleryApp.WebApi.Controllers
         //-----------------------kapak--------------------
 
         [HttpPost("AddCarCoverImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddCarCoverImageAsync(int carId, IFormFile file)
+        public async Task<ActionResult<string>> AddCarCoverImage(int carId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.AddCarCoverImageAsync(carId, file);
-                if (result == 1)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç kapağı bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else if (result == -2)
-                {
-                    list.Add("Bu carId ye ait araç kapağı resmi vardır.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Araç kapağı resmi eklenemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case -2:
+                        list.Add("There is already a vehicle cover picture of this carId.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -170,18 +190,20 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetCarCoverImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<CarImage>> GetCarCoverImageAsync(int carId)
+        public async Task<ActionResult<CarImage>> GetCarCoverImage(int carId)
         {
             var list = new List<string>();
+            if (carId <= 0)
+            {
+                list.Add("Invalid carId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var car = await _carService.GetCarCoverImage(carId);
                 if (car == null)
                 {
-                    list.Add("Araç kapağı resmi bulunamadı.");
+                    list.Add("Vehicle cover picture is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 return File(car.Content, "image/jpeg");
@@ -193,27 +215,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateCarCoverImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateCarCoverImageAsync(int carId, IFormFile file)
+        public async Task<ActionResult<string>> UpdateCarCoverImage(int carId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.UpdateCarCoverImageAsync(carId, file);
-                if (result > 0)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç kapağı resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Araç kapağı resmi güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -223,28 +241,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteCarCoverImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> DeleteCarCoverImageAsync(int carId)
+        public async Task<ActionResult<string>> DeleteCarCoverImage(int carId)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.DeleteCarCoverImageAsync(carId);
-                if (result > 0)
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç kapağı resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Araç kapağı resmi silinemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -257,7 +270,7 @@ namespace GalleryApp.WebApi.Controllers
         //-----------------------galeri--------------------
 
         [HttpGet("GetCarImagesIdList/{carId}")]
-        public async Task<ActionResult<List<string>>> GetCarImageAsync(int carId)
+        public async Task<ActionResult<List<string>>> GetCarImage(int carId)
         {
             var list = new List<string>();
             try
@@ -265,7 +278,7 @@ namespace GalleryApp.WebApi.Controllers
                 var carImage = await _carService.GetCarImagesIdList(carId);
                 if (carImage == null)
                 {
-                    list.Add("Araç listesi bulunamadı.");
+                    list.Add("Vehicle list is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 else
@@ -280,10 +293,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetCarImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<CarImage>> GetCarImageAsync(string carId)
+        public async Task<ActionResult<CarImage>> GetCarImage(string carId)
         {
             var list = new List<string>();
             try
@@ -291,7 +301,7 @@ namespace GalleryApp.WebApi.Controllers
                 var currentImage = await _carService.GetCarImage(carId);
                 if (currentImage == null)
                 {
-                    list.Add("Araç resmi bulunamadı.");
+                    list.Add("Vehicle picture is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 return File(currentImage, "image/jpeg");
@@ -303,32 +313,26 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPost("AddCarImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddCarImageAsync(int carId, IFormFile file)
+        public async Task<ActionResult<string>> AddCarImage(int carId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.AddCarImageAsync(carId, file);
-                if (result == 1)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else if (result == -2)
-                {
-                    list.Add("Bu carId ye ait araç resmi vardır.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Araç resmi eklenemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case -2:
+                        list.Add("There is already a vehicle cover picture of this carId.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -339,27 +343,23 @@ namespace GalleryApp.WebApi.Controllers
 
 
         [HttpPut("UpdateCarImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateCarImageAsync(string carId, IFormFile file)
+        public async Task<ActionResult<string>> UpdateCarImage(string carId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.UpdateCarImageAsync(carId, file);
-                if (result > 0)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Araç resmi güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -369,28 +369,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteCarImage/{carId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> DeleteCarImageAsync(string carId)
+        public async Task<ActionResult<string>> DeleteCarImage(string carId)
         {
             var list = new List<string>();
             try
             {
                 var result = await _carService.DeleteCarImageAsync(carId);
-                if (result > 0)
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else if (result == -1)
-                {
-                    list.Add("Araç resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Araç resmi silinemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
