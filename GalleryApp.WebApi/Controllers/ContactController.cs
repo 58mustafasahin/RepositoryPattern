@@ -1,7 +1,6 @@
 ﻿using GalleryApp.Business.Abstract;
 using GalleryApp.Business.Validation.Contact;
 using GalleryApp.Entity.Dtos.Contact;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -20,9 +19,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetAllContactList")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<GetListContactDto>>> GetAllContactListAsync()
+        public async Task<ActionResult<List<GetListContactDto>>> GetAllContactList()
         {
             try
             {
@@ -36,17 +33,20 @@ namespace GalleryApp.WebApi.Controllers
 
 
         [HttpGet("GetContactById/{contactId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<GetContactDto>> GetContactByIdAsync(int contactId)
+        public async Task<ActionResult<GetContactDto>> GetContactById(int contactId)
         {
             var list = new List<string>();
+            if (contactId <= 0)
+            {
+                list.Add("Invalid contactId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var contact = await _contactService.GetContactAsync(contactId);
                 if (contact == null)
                 {
-                    list.Add("İletişim bulunamadı.");
+                    list.Add("Contact is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 else
@@ -61,13 +61,11 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPost("AddContact")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddContactAsync(AddContactDto addContactDto)
+        public async Task<ActionResult<string>> AddContact(AddContactDto addContactDto)
         {
+            var list = new List<string>();
             var validator = new ContactAddValidator();
             var validationResults = validator.Validate(addContactDto);
-            var list = new List<string>();
 
             if (!validationResults.IsValid)
             {
@@ -79,8 +77,16 @@ namespace GalleryApp.WebApi.Controllers
             }
             try
             {
-                await _contactService.AddContactAsync(addContactDto);
-                return StatusCode(StatusCodes.Status201Created);
+                var result = await _contactService.AddContactAsync(addContactDto);
+                switch (result)
+                {
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                }
             }
             catch (Exception ex)
             {
@@ -89,9 +95,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateContact/{contactId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateContactAsync(int contactId, UpdateContactDto updateContactDto)
+        public async Task<ActionResult<string>> UpdateContact(int contactId, UpdateContactDto updateContactDto)
         {
             var list = new List<string>();
             var validator = new ContactUpdateValidator();
@@ -107,20 +111,18 @@ namespace GalleryApp.WebApi.Controllers
             }
             try
             {
-                int result = await _contactService.UpdateContactAsync(contactId, updateContactDto);
-                if (result > 0)
+                var result = await _contactService.UpdateContactAsync(contactId, updateContactDto);
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("İletişim bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("İletişim güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Contact is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -130,23 +132,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteContact/{contactId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<string>> DeleteContact(int contactId)
         {
             var list = new List<string>();
             try
             {
-                int result = await _contactService.DeleteContact(contactId);
-                if (result > 0)
+                var result = await _contactService.DeleteContact(contactId);
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı.");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else
-                {
-                    list.Add("İletişim silinemedi.");  //silme işlemi başarısız
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Contact is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)

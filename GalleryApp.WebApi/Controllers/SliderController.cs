@@ -1,4 +1,5 @@
 ﻿using GalleryApp.Business.Abstract;
+using GalleryApp.Business.Validation.Slider;
 using GalleryApp.Entity.Dtos.Slider;
 using GalleryApp.Entity.Entity.ImageEntities;
 using Microsoft.AspNetCore.Http;
@@ -20,9 +21,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetAllSliderList")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<GetListSliderDto>>> GetAllSliderListAsync()
+        public async Task<ActionResult<List<GetListSliderDto>>> GetAllSliderList()
         {
             try
             {
@@ -35,17 +34,20 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetSliderById/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<GetSliderDto>> GetSliderByIdAsync(int sliderId)
+        public async Task<ActionResult<GetSliderDto>> GetSliderById(int sliderId)
         {
             var list = new List<string>();
+            if (sliderId <= 0)
+            {
+                list.Add("Invalid sliderId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var slider = await _sliderService.GetSliderAsync(sliderId);
                 if (slider == null)
                 {
-                    list.Add("Slider bulunamadı.");
+                    list.Add("Slider is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 else
@@ -60,14 +62,32 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPost("AddSlider")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddSliderAsync(AddSliderDto addSliderDto)
+        public async Task<ActionResult<string>> AddSlider(AddSliderDto addSliderDto)
         {
+            var list = new List<string>();
+            var validator = new SliderAddValidator();
+            var validationResult = validator.Validate(addSliderDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
+
             try
             {
-                await _sliderService.AddSliderAsync(addSliderDto);
-                return StatusCode(StatusCodes.Status201Created);
+                var result = await _sliderService.AddSliderAsync(addSliderDto);
+                switch (result)
+                {
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                }
             }
             catch (Exception ex)
             {
@@ -76,27 +96,34 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateSlider/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateSliderAsync(int sliderId, UpdateSliderDto updateSliderDto)
+        public async Task<ActionResult<string>> UpdateSlider(int sliderId, UpdateSliderDto updateSliderDto)
         {
             var list = new List<string>();
+            var validator = new SliderUpdateValidator();
+            var validationResult = validator.Validate(updateSliderDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
+
             try
             {
-                int result = await _sliderService.UpdateSliderAsync(sliderId, updateSliderDto);
-                if (result > 0)
+                var result = await _sliderService.UpdateSliderAsync(sliderId, updateSliderDto);
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Slider bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Slider güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Slider is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -106,23 +133,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteSlider/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<string>> DeleteSlider(int sliderId)
         {
             var list = new List<string>();
             try
             {
-                int result = await _sliderService.DeleteSlider(sliderId);
-                if (result > 0)
+                var result = await _sliderService.DeleteSlider(sliderId);
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı.");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else
-                {
-                    list.Add("Slider silinemedi.");  //silme işlemi başarısız
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Slider is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -131,33 +158,30 @@ namespace GalleryApp.WebApi.Controllers
             }
         }
 
+        //--------------------------------------------------------------------------------
+        //-----------------------image--------------------
+
         [HttpPost("AddSliderImage/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddSliderImageAsync(int sliderId, IFormFile file)
+        public async Task<ActionResult<string>> AddSliderImage(int sliderId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _sliderService.AddSliderImageAsync(sliderId, file);
-                if (result == 1)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Slider bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else if (result == -2)
-                {
-                    list.Add("Bu slider Id ye ait resmi vardır.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Slider Resimi eklenemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Slider is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case -2:
+                        list.Add("There is already a slider picture of this sliderId.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -167,18 +191,20 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetSliderImage/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<SliderImage>> GetSliderImageAsync(int sliderId)
+        public async Task<ActionResult<SliderImage>> GetSliderImage(int sliderId)
         {
             var list = new List<string>();
+            if (sliderId <= 0)
+            {
+                list.Add("Invalid sliderId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var slider = await _sliderService.GetSliderImage(sliderId);
                 if (slider == null)
                 {
-                    list.Add("Slider resmi bulunamadı.");
+                    list.Add("Slider picture is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 return File(slider.Content, "image/jpeg");
@@ -190,27 +216,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateSliderImage/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateSliderImageAsync(int sliderId, IFormFile file)
+        public async Task<ActionResult<string>> UpdateSliderImage(int sliderId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _sliderService.UpdateSliderImageAsync(sliderId, file);
-                if (result > 0)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Slider resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Slider resmi güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Slider picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -220,28 +242,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteSliderImage/{sliderId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> DeleteSliderImageAsync(int sliderId)
+        public async Task<ActionResult<string>> DeleteSliderImage(int sliderId)
         {
             var list = new List<string>();
             try
             {
                 var result = await _sliderService.DeleteSliderImageAsync(sliderId);
-                if (result > 0)
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else if (result == -1)
-                {
-                    list.Add("Slider resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Slider resmi silinemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)

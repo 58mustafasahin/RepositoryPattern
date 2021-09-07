@@ -1,4 +1,5 @@
 ﻿using GalleryApp.Business.Abstract;
+using GalleryApp.Business.Validation.About;
 using GalleryApp.Entity.Dtos.About;
 using GalleryApp.Entity.Entity.ImageEntities;
 using Microsoft.AspNetCore.Http;
@@ -14,16 +15,13 @@ namespace GalleryApp.WebApi.Controllers
     public class AboutController : ControllerBase
     {
         private readonly IAboutService _aboutService;
-
         public AboutController(IAboutService aboutService)
         {
             _aboutService = aboutService;
         }
 
         [HttpGet("GetAllAboutList")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<GetListAboutDto>>> GetAllAboutListAsync()
+        public async Task<ActionResult<IEnumerable<GetListAboutDto>>> GetAllAboutList()
         {
             try
             {
@@ -36,24 +34,26 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetAboutById/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<GetAboutDto>> GetAboutByIdAsync(int aboutId)
+        public async Task<ActionResult<GetAboutDto>> GetAboutById(int aboutId)
         {
             var list = new List<string>();
+            if (aboutId <= 0)
+            {
+                list.Add("Invalid aboutId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
-                var report = await _aboutService.GetAboutById(aboutId);
-                if (report == null)
+                var about = await _aboutService.GetAboutById(aboutId);
+                if (about == null)
                 {
-                    list.Add("Hakkımızda bulunamadı.");
+                    list.Add("About is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 else
                 {
-                    return Ok(report);
+                    return Ok(about);
                 }
-
             }
             catch (Exception ex)
             {
@@ -62,23 +62,32 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPost("AddAbout")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<int>> AddAboutAsync([FromBody] AddAboutDto addAbout)
+        public async Task<ActionResult<string>> AddAbout(AddAboutDto addAboutDto)
         {
-            //var validator = new AboutAddValidator(_aboutService);
-            //var validationResults = validator.Validate(addAbout);
-
-
-            //if (!validationResults.IsValid)
-            //{
-            //    return Ok(validationResults.Errors);
-            //}
+            var list = new List<string>();
+            var validator = new AboutAddValidator();
+            var validationResult = validator.Validate(addAboutDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
 
             try
             {
-                await _aboutService.AddAbout(addAbout);
-                return StatusCode(StatusCodes.Status201Created);
+                var result = await _aboutService.AddAbout(addAboutDto);
+                switch (result)
+                {
+                    case > 0:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                }
             }
             catch (Exception ex)
             {
@@ -87,27 +96,33 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateAbout/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<int>> UpdateAboutAsync(int aboutId, [FromBody] UpdateAboutDto updateAbout)
+        public async Task<ActionResult<string>> UpdateAbout(int aboutId, UpdateAboutDto updateAboutDto)
         {
             var list = new List<string>();
+            var validator = new AboutUpdateValidator();
+            var validationResult = validator.Validate(updateAboutDto);
+            if (!validationResult.IsValid)
+            {
+                foreach (var result in validationResult.Errors)
+                {
+                    list.Add(result.ErrorMessage);
+                }
+                return Ok(new { code = StatusCode(1002), message = list, type = "error" });
+            }
             try
             {
-                var result = await _aboutService.UpdateAbout(aboutId, updateAbout);
-                if (result > 0)
+                var result = await _aboutService.UpdateAbout(aboutId, updateAboutDto);
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("hakkımızda bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("hakkımızda silinemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case > 0:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("About is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -117,27 +132,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteAbout/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<int>> DeleteAbout(int aboutId)
+        public async Task<ActionResult<string>> DeleteAbout(int aboutId)
         {
             var list = new List<string>();
             try
             {
                 var result = await _aboutService.DeleteAbout(aboutId);
-                if (result > 0)
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı.");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else if (result == 0)
-                {
-                    list.Add("hakkımızda bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    return BadRequest();
+                    case > 0:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("About is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -146,33 +157,30 @@ namespace GalleryApp.WebApi.Controllers
             }
         }
 
+        //--------------------------------------------------------------------------------
+        //-----------------------image--------------------
+
         [HttpPost("AddAboutImage/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> AddAboutImageAsync(int aboutId, IFormFile file)
+        public async Task<ActionResult<string>> AddAboutImage(int aboutId, IFormFile file)
         {
             var list = new List<string>();
             try
             {
                 var result = await _aboutService.AddAboutImageAsync(aboutId, file);
-                if (result == 1)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Hakkımızda bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else if (result == -2)
-                {
-                    list.Add("Bu Hakkımızda Id ye ait resmi vardır.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else
-                {
-                    list.Add("Hakkımızda resimi eklenemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Adding.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("About is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case -2:
+                        list.Add("There is already a about picture of this aboutId.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Adding.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -182,18 +190,20 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpGet("GetAboutImage/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<AboutImage>> GetAboutImageAsync(int aboutId)
+        public async Task<ActionResult<AboutImage>> GetAboutImage(int aboutId)
         {
             var list = new List<string>();
+            if (aboutId <= 0)
+            {
+                list.Add("Invalid aboutId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var about = await _aboutService.GetAboutImage(aboutId);
                 if (about == null)
                 {
-                    list.Add("Hakkımızda resmi bulunamadı.");
+                    list.Add("About picture is not found.");
                     return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
                 return File(about.Content, "image/jpeg");
@@ -205,28 +215,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpPut("UpdateAboutImage/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> UpdateAboutImageAsync(int aboutId, IFormFile file)
+        public async Task<ActionResult<string>> UpdateAboutImage(int aboutId, IFormFile file)
         {
             var list = new List<string>();
-
             try
             {
                 var result = await _aboutService.UpdateAboutImageAsync(aboutId, file);
-                if (result > 0)
+                switch (result)
                 {
-                    return StatusCode(StatusCodes.Status201Created);
-                }
-                else if (result == -1)
-                {
-                    list.Add("Hakkımızda resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Hakkımızda resmi güncellemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Updating.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("About picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Updating.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)
@@ -236,28 +241,23 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         [HttpDelete("DeleteAboutImage/{aboutId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> DeleteAboutImageAsync(int aboutId)
+        public async Task<ActionResult<string>> DeleteAboutImage(int aboutId)
         {
             var list = new List<string>();
             try
             {
                 var result = await _aboutService.DeleteAboutImageAsync(aboutId);
-                if (result > 0)
+                switch (result)
                 {
-                    list.Add("Silme işlemi başarılı");
-                    return Ok(new { code = StatusCode(1000), message = list, type = "success" });
-                }
-                else if (result == -1)
-                {
-                    list.Add("Hakkımızda resmi bulunamadı.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
-                }
-                else  //-2 veya farklı bir durum olursa
-                {
-                    list.Add("Hakkımızda resmi silinemedi.");
-                    return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    case 1:
+                        list.Add("Successful Deleting.");
+                        return Ok(new { code = StatusCode(1000), message = list, type = "success" });
+                    case -1:
+                        list.Add("Vehicle cover picture is not found.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+                    default:
+                        list.Add("Failed Deleting.");
+                        return Ok(new { code = StatusCode(1001), message = list, type = "error" });
                 }
             }
             catch (Exception ex)

@@ -109,6 +109,7 @@ namespace GalleryApp.WebApi.Controllers
                 }
                 return Ok(new { code = StatusCode(1002), message = list, type = "error" });
             }
+
             try
             {
                 var result = await _carService.UpdateCarAsync(carId, updateCarDto);
@@ -158,7 +159,7 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         //--------------------------------------------------------------------------------
-        //-----------------------kapak--------------------
+        //-----------------------cover--------------------
 
         [HttpPost("AddCarCoverImage/{carId}")]
         public async Task<ActionResult<string>> AddCarCoverImage(int carId, IFormFile file)
@@ -169,7 +170,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.AddCarCoverImageAsync(carId, file);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Adding.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
@@ -223,7 +224,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.UpdateCarCoverImageAsync(carId, file);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Updating.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
@@ -249,7 +250,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.DeleteCarCoverImageAsync(carId);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Deleting.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
@@ -267,12 +268,17 @@ namespace GalleryApp.WebApi.Controllers
         }
 
         //--------------------------------------------------------------------------------
-        //-----------------------galeri--------------------
+        //-----------------------gallery--------------------
 
         [HttpGet("GetCarImagesIdList/{carId}")]
         public async Task<ActionResult<List<string>>> GetCarImage(int carId)
         {
             var list = new List<string>();
+            if (carId <= 0)
+            {
+                list.Add("Invalid carId.");
+                return Ok(new { code = StatusCode(1001), message = list, type = "error" });
+            }
             try
             {
                 var carImage = await _carService.GetCarImagesIdList(carId);
@@ -321,7 +327,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.AddCarImageAsync(carId, file);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Adding.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
@@ -351,7 +357,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.UpdateCarImageAsync(carId, file);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Updating.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
@@ -377,7 +383,7 @@ namespace GalleryApp.WebApi.Controllers
                 var result = await _carService.DeleteCarImageAsync(carId);
                 switch (result)
                 {
-                    case > 0:
+                    case 1:
                         list.Add("Successful Deleting.");
                         return Ok(new { code = StatusCode(1000), message = list, type = "success" });
                     case -1:
